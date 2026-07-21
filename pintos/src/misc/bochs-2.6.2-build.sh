@@ -24,8 +24,8 @@ cd $$
 wget https://sourceforge.net/projects/bochs/files/bochs/2.6.2/bochs-2.6.2.tar.gz/download -O bochs-2.6.2.tar.gz 
 tar xzf bochs-2.6.2.tar.gz
 cd bochs-2.6.2
-wget -O config.guess "https://git.savannah.gnu.org/cgit/config.git/plain/config.guess"
-wget -O config.sub "https://git.savannah.gnu.org/cgit/config.git/plain/config.sub"
+wget -O config.guess "https://raw.githubusercontent.com/gcc-mirror/gcc/master/config.guess"
+wget -O config.sub "https://raw.githubusercontent.com/gcc-mirror/gcc/master/config.sub"
 cat $CWD/bochs-2.6.2-jitter-plus-segv.patch | patch -p1
 cat $CWD/bochs-2.6.2-xrandr-pkgconfig.patch | patch -p1
 cat $CWD/bochs-2.6.2-banner-stderr.patch | patch -p1
