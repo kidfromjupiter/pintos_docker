@@ -2,6 +2,8 @@
 
 This Dockerfile is designed to set up Pintos, an educational operating system framework for the x86 architecture, in any operating system using Docker. It provides a straightforward way to get Pintos running without the need to manually configure the development environment.
 
+This has been customised to fit the criteria for CS2043 module of University of Moratuwa.
+
 ## Prerequisites
 
 Before you begin, ensure you have Docker installed on your system. If you do not have Docker installed, follow the instructions on the [official Docker website](https://docs.docker.com/get-docker/) to install it.
@@ -15,12 +17,23 @@ To use this Docker setup for Pintos, follow these steps:
    First, clone this repository to your local machine using:
 
    ```bash
-   git clone https://github.com/kavienanj/pintos.git
+   git clone https://github.com/VidathD/pintos_docker.git
+   cd pintos_docker
    ```
 
-2. **Build the Docker Image**
+2. **Bochs Support**
 
-   Navigate to the directory containing the Dockerfile and build the Docker image using:
+   Bochs installation has been removed from the Dockerfile since it is not needed for this module. If you need to build it, while in the pintos_docker directory, run,
+   
+   ```bash
+   mv Dockerfile Dockerfile.bak
+   mv Dockerfile_Bochs Dockerfile
+   ```
+   This renames the Dockerfile_Bochs to Dockerfile and the original Dockerfile to Dockerfile.bak
+
+3. **Build the Docker Image**
+
+   Dockerfile and build the Docker image using:
 
    ```bash
    docker build -t pintos .
@@ -28,7 +41,7 @@ To use this Docker setup for Pintos, follow these steps:
 
    This command builds a Docker image named `pintos` based on the instructions in the Dockerfile. You can replace `pintos` with any other name you prefer.
 
-3. **Run the Docker Container**
+5. **Run the Docker Container**
 
    After the image has been successfully built, you can start a Docker container with the Pintos development environment using:
 
@@ -38,7 +51,7 @@ To use this Docker setup for Pintos, follow these steps:
 
    This command starts a new container and opens an interactive terminal session inside it. You are now in an environment where Pintos is set up and ready to use.
 
-4. **Verify Pintos Installation**
+6. **Verify Pintos Installation**
 
    After entering the Docker container, you can verify that Pintos is correctly installed and working by running:
 
@@ -48,7 +61,7 @@ To use this Docker setup for Pintos, follow these steps:
    pintos --
    ```
 
-   This command runs Pintos with QEMU. If you prefer to use Bochs instead, you can run:
+   This command runs Pintos with QEMU. If you prefer to use Bochs instead, assuming you built it, you can run:
 
    ```bash
    pintos --bochs
