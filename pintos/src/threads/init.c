@@ -4,7 +4,9 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <random.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,6 +74,9 @@ static void locate_block_device (enum block_type, const char *name);
 
 int pintos_init (void) NO_RETURN;
 
+static void read_line (char line[], size_t);
+static bool backspace (char **pos, char line[]);
+
 /* Pintos main entry point. */
 int
 pintos_init (void)
@@ -133,7 +138,22 @@ pintos_init (void)
     /* Run actions specified on kernel command line. */
     run_actions (argv);
   } else {
-    // TODO: no command line passed to kernel. Run interactively 
+    for (;;){
+      char prompt[] = "\nCS318>";
+      printf ("%s", prompt);
+      char cmd[256];
+
+      read_line (cmd, sizeof cmd);
+
+      if (! strcmp(cmd, "whoami")){
+        printf("lasan");
+      } else if (! strcmp(cmd, "exit")){
+        printf("Exiting...");
+        break;
+      }
+
+
+    }
   }
 
   /* Finish up. */
@@ -431,3 +451,59 @@ locate_block_device (enum block_type role, const char *name)
     }
 }
 #endif
+
+
+/* Handles displaying text and getting input from the interactive shell */
+static void
+read_line (char line[], size_t size) 
+{
+  char *pos = line;
+  for (;;)
+    {
+      char c = input_getc();
+
+      switch (c) 
+        {
+        case '\r':
+          *pos = '\0';
+          putchar ('\n');
+          return;
+
+        case '\b':
+          backspace (&pos, line);
+          break;
+
+        case ('U' - 'A') + 1:       /* Ctrl+U. */
+          while (backspace (&pos, line))
+            continue;
+          break;
+
+        default:
+          /* Add character to line. */
+          if (pos < line + size - 1) 
+            {
+              putchar (c);
+              *pos++ = c;
+            }
+          break;
+        }
+    }
+}
+
+/* If *POS is past the beginning of LINE, backs up one character
+   position.  Returns true if successful, false if nothing was
+   done. */
+static bool
+backspace (char **pos, char line[]) 
+{
+  if (*pos > line)
+    {
+      /* Back up cursor, overwrite character, back up
+         again. */
+      printf ("\b \b");
+      (*pos)--;
+      return true;
+    }
+  else
+    return false;
+}

@@ -1,0 +1,13 @@
+services:
+  pintos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pintos
+    stdin_open: true
+    tty: true
+
+    working_dir: /home/lasan/Dev/pintos_docker/pintos/src/threads
+
+    volumes:
+      - ./pintos/src:/home/lasan/Dev/pintos_docker/pintos/src
