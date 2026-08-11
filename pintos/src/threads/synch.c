@@ -29,6 +29,7 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+#include "list.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
@@ -50,6 +51,21 @@ sema_init (struct semaphore *sema, unsigned value)
   list_init (&sema->waiters);
 }
 
+/* Comparator function for inserting to ready_list in decreasing priority order */
+static bool
+thread_priority_decreasing (const struct list_elem *a,
+             const struct list_elem *b,
+             void *aux UNUSED)
+{
+    const struct thread *ta =
+        list_entry(a, struct thread, elem);
+
+    const struct thread *tb =
+        list_entry(b, struct thread, elem);
+
+    return ta->priority > tb->priority;
+}
+
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
    to become positive and then atomically decrements it.
 
@@ -68,7 +84,10 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      
+      // insert threads order of priority decreasing so that sema_up wakeup follows priority
+      list_insert_ordered(&sema->waiters, &thread_current()->elem, thread_priority_decreasing, NULL);
+      //list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
   sema->value--;
