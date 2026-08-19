@@ -1,6 +1,7 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
+#include "stdbool.h"
 #include "threads/synch.h"
 #include <debug.h>
 #include <list.h>
@@ -101,6 +102,8 @@ struct thread
     /* list of all the locks held by this thread */
     struct list locks; 
 
+    /* pointer to requested lock ( not acquired yet )*/
+    struct lock *waiting_lock;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

@@ -200,6 +200,28 @@ lock_init (struct lock *lock)
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
 }
+static void
+donate_priority_chain (struct thread *donor)
+{
+  int donated_priority = donor->priority;
+  struct lock *lock = donor->waiting_lock;
+  int depth = 0;
+
+  while (lock != NULL &&
+         lock->holder != NULL &&
+         depth < 8)
+    {
+      struct thread *holder = lock->holder;
+
+      if (holder->priority < donated_priority)
+        holder->priority = donated_priority;
+
+      /* Continue through the lock that the holder is waiting for. */
+      donated_priority = holder->priority;
+      lock = holder->waiting_lock;
+      depth++;
+    }
+}
 
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
@@ -219,18 +241,24 @@ lock_acquire (struct lock *lock)
   enum intr_level old_level;
   old_level = intr_disable ();
   
-  if (lock->holder != NULL  && lock->holder->priority < thread_get_priority()){
-
-    lock->holder->priority = thread_get_priority();
+  thread_current()->waiting_lock = lock;
+  
+  if (lock->holder != NULL){
+    donate_priority_chain(thread_current());
+       
   }
 
 
   intr_set_level (old_level);
+  // gets blocked here if the sema is held by another thread
   sema_down (&lock->semaphore);
+  // successfully acquired sema
 
   old_level = intr_disable ();
+
   lock->holder = thread_current ();
-  list_push_back(&thread_current()->locks, &lock->elem);
+  list_push_back(&thread_current()->locks, &lock->lock_elem);
+  thread_current()->waiting_lock = NULL;
 
   intr_set_level (old_level);
 }
@@ -270,7 +298,7 @@ lock_release (struct lock *lock)
   
   enum intr_level old_level = intr_disable ();
   
-  list_remove (&lock->elem);
+  list_remove (&lock->lock_elem);
   lock->holder = NULL;
   
   /* Recalculate from the remaining held locks. */
@@ -282,7 +310,7 @@ lock_release (struct lock *lock)
        lock_elem = list_next (lock_elem))
     {
       struct lock *held_lock =
-          list_entry (lock_elem, struct lock, elem);
+          list_entry (lock_elem, struct lock, lock_elem);
   
       struct list_elem *waiter_elem;
       for (waiter_elem = list_begin (&held_lock->semaphore.waiters);
