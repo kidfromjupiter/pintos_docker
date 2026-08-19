@@ -29,9 +29,11 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+#include "malloc.h"
 #include "list.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -217,15 +219,20 @@ lock_acquire (struct lock *lock)
   enum intr_level old_level;
   old_level = intr_disable ();
   
+  if (lock->holder != NULL  && lock->holder->priority < thread_get_priority()){
 
-  if (lock->holder != NULL  && lock->holder->priority < thread_current()->priority){
-    lock->holder->initial_priority = lock->holder->priority;
-    lock->holder->priority = thread_current()->priority;
+    lock->holder->priority = thread_get_priority();
   }
+
 
   intr_set_level (old_level);
   sema_down (&lock->semaphore);
+
+  old_level = intr_disable ();
   lock->holder = thread_current ();
+  list_push_back(&thread_current()->locks, &lock->elem);
+
+  intr_set_level (old_level);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -258,12 +265,42 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  if (lock->holder->initial_priority){
-    //priority donation has occured
-    lock->holder->priority = lock->holder->initial_priority; 
-  }
 
+  struct thread *current = thread_current ();
+  
+  enum intr_level old_level = intr_disable ();
+  
+  list_remove (&lock->elem);
   lock->holder = NULL;
+  
+  /* Recalculate from the remaining held locks. */
+  int new_priority = current->initial_priority;
+  
+  struct list_elem *lock_elem;
+  for (lock_elem = list_begin (&current->locks);
+       lock_elem != list_end (&current->locks);
+       lock_elem = list_next (lock_elem))
+    {
+      struct lock *held_lock =
+          list_entry (lock_elem, struct lock, elem);
+  
+      struct list_elem *waiter_elem;
+      for (waiter_elem = list_begin (&held_lock->semaphore.waiters);
+           waiter_elem != list_end (&held_lock->semaphore.waiters);
+           waiter_elem = list_next (waiter_elem))
+        {
+          struct thread *waiter =
+              list_entry (waiter_elem, struct thread, elem);
+  
+          if (waiter->priority > new_priority)
+            new_priority = waiter->priority;
+        }
+    }
+  
+  current->priority = new_priority;
+  
+  intr_set_level (old_level);
+  
   sema_up (&lock->semaphore);
 
 

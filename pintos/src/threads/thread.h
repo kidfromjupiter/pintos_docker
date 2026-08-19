@@ -1,6 +1,7 @@
 #ifndef THREADS_THREAD_H
 #define THREADS_THREAD_H
 
+#include "threads/synch.h"
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
@@ -96,6 +97,9 @@ struct thread
 
     /* this field is populated when thread is sent to sleep*/
     int64_t wake_at_tick;
+
+    /* list of all the locks held by this thread */
+    struct list locks; 
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
